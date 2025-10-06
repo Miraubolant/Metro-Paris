@@ -643,64 +643,222 @@
             100% { transform: rotate(360deg); }
         }
 
+        /* Tablettes */
+        @media (max-width: 1024px) {
+            .voters-panel {
+                width: 260px;
+            }
+
+            .stations-grid {
+                grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            }
+        }
+
+        /* Mobiles */
         @media (max-width: 768px) {
             .header h1 {
-                font-size: 2em;
+                font-size: 1.8em;
+            }
+
+            .header-subtitle {
+                font-size: 1em;
             }
 
             .main-content {
                 padding-top: 0;
             }
 
+            .container {
+                padding: 10px;
+            }
+
+            .user-info {
+                padding: 10px 20px;
+                font-size: 0.9em;
+                display: block;
+                text-align: center;
+            }
+
+            .logout-btn {
+                margin-left: 0;
+                margin-top: 10px;
+                display: inline-block;
+            }
+
             .stats {
-                gap: 15px;
+                gap: 10px;
             }
 
             .stat-card {
-                padding: 12px 20px;
-                min-width: 100px;
+                padding: 10px 15px;
+                min-width: 90px;
             }
 
             .stat-number {
-                font-size: 2em;
+                font-size: 1.8em;
+            }
+
+            .stat-label {
+                font-size: 0.85em;
+            }
+
+            .controls-container {
+                padding: 15px;
+            }
+
+            .search-input {
+                font-size: 14px;
+                padding: 12px 15px;
+            }
+
+            .alphabet-controls {
+                gap: 5px;
+            }
+
+            .alphabet-nav {
+                gap: 4px;
+            }
+
+            .alphabet-btn {
+                padding: 6px 8px;
+                font-size: 0.8em;
+                min-width: 32px;
+            }
+
+            .clear-filter-btn {
+                font-size: 0.85em;
+                padding: 6px 12px;
+                margin-left: 0;
+                margin-top: 10px;
+                width: 100%;
             }
 
             .stations-grid {
                 grid-template-columns: 1fr;
-                gap: 15px;
+                gap: 12px;
             }
 
-            .alphabet-nav {
+            .station-card {
+                padding: 15px;
+            }
+
+            .station-name {
+                font-size: 1.1em;
+            }
+
+            .station-icon {
+                font-size: 1.3em;
+            }
+
+            .pagination {
+                flex-wrap: wrap;
                 gap: 5px;
             }
 
-            .alphabet-btn {
-                padding: 6px 10px;
+            .page-btn {
+                padding: 8px 12px;
                 font-size: 0.85em;
-                min-width: 35px;
+            }
+
+            .page-info {
+                font-size: 0.9em;
+                width: 100%;
+                text-align: center;
+                margin-bottom: 5px;
             }
 
             .notification {
                 right: 10px;
                 left: 10px;
                 max-width: none;
+                font-size: 0.9em;
+                padding: 12px 20px;
             }
 
             .scroll-to-top {
                 width: 50px;
                 height: 50px;
-                bottom: 20px;
-                right: 20px;
+                bottom: 80px;
+                right: 15px;
+                font-size: 1.3em;
             }
 
+            /* Panel votants en mobile */
             .voters-panel {
-                width: 250px;
+                width: 100%;
+                max-width: 300px;
                 right: 10px;
+                top: auto;
+                bottom: 20px;
+                transform: none;
+                max-height: 40vh;
             }
 
             .voters-panel.collapsed {
                 width: 50px;
                 height: 50px;
+                bottom: 20px;
+                right: 10px;
+            }
+
+            .voters-header {
+                font-size: 1em;
+                padding: 12px;
+            }
+
+            .voter-item {
+                padding: 10px;
+            }
+
+            .voter-username {
+                font-size: 0.95em;
+            }
+
+            .voter-station {
+                font-size: 0.8em;
+            }
+        }
+
+        /* Petits mobiles */
+        @media (max-width: 480px) {
+            .header h1 {
+                font-size: 1.5em;
+            }
+
+            .user-info {
+                font-size: 0.85em;
+                padding: 8px 15px;
+            }
+
+            .stat-card {
+                padding: 8px 12px;
+                min-width: 80px;
+            }
+
+            .stat-number {
+                font-size: 1.5em;
+            }
+
+            .stat-label {
+                font-size: 0.8em;
+            }
+
+            .alphabet-btn {
+                padding: 5px 6px;
+                font-size: 0.75em;
+                min-width: 28px;
+            }
+
+            .station-card {
+                padding: 12px;
+            }
+
+            .station-name {
+                font-size: 1em;
+            }
+
+            .voters-panel {
+                max-width: calc(100% - 20px);
             }
         }
     </style>
@@ -998,6 +1156,7 @@
                     if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
                     const voters = await response.json();
+                    console.log('👥 Votants reçus:', voters);
                     this.renderVoters(voters);
                 } catch (error) {
                     console.error('❌ Erreur chargement votants:', error);
