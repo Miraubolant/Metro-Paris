@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎃 Connexion - Soirée Halloween</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎃</text></svg>">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1a1a2e;
+            min-height: 100vh;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .login-container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 450px;
+            width: 100%;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 15px;
+            font-size: 16px;
+            border: none;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.9);
+            color: #333;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .form-group input:focus {
+            transform: scale(1.02);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 15px;
+            font-size: 18px;
+            font-weight: bold;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .notification {
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-weight: 500;
+            display: none;
+        }
+
+        .notification.show {
+            display: block;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .notification.error {
+            background: rgba(244, 67, 54, 0.8);
+        }
+
+        .notification.info {
+            background: rgba(33, 150, 243, 0.8);
+        }
+
+        .notification.success {
+            background: rgba(76, 175, 80, 0.8);
+        }
+
+        .divider {
+            text-align: center;
+            margin: 20px 0;
+            opacity: 0.7;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-left: 4px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        #returning-user-section {
+            background: rgba(33, 150, 243, 0.2);
+            border: 1px solid rgba(33, 150, 243, 0.4);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        #returning-user-section p {
+            margin-bottom: 15px;
+            font-size: 1.05em;
+        }
+
+        @media (max-width: 768px) {
+            .login-container {
+                padding: 30px 20px;
+            }
+
+            .header h1 {
+                font-size: 2em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="header">
+            <h1>🎃 Soirée Halloween</h1>
+            <p>Bienvenue ! Choisissez un nom d'utilisateur</p>
+        </div>
+
+        <div class="notification" id="notification"></div>
+
+        <div id="main-form">
+            <div class="form-group">
+                <label for="username">Nom d'utilisateur</label>
+                <input
+                    type="text"
+                    id="username"
+                    placeholder="Entrez votre nom d'utilisateur"
+                    autocomplete="off"
+                    maxlength="30"
+                >
+            </div>
+
+            <div id="returning-user-section" class="hidden">
+                <p>👋 Bon retour <strong id="returning-username"></strong> !</p>
+                <p>Votre IP a changé. Confirmez votre identité pour récupérer votre compte.</p>
+                <p id="station-info" class="hidden">Vous aviez sélectionné : <strong id="user-station"></strong></p>
+            </div>
+
+            <button class="btn btn-primary" id="submit-btn">Continuer</button>
+        </div>
+
+        <div id="loading" class="loading hidden">
+            <div class="spinner"></div>
+            <p>Connexion en cours...</p>
+        </div>
+    </div>
+
+    <script>
+        class LoginManager {
+            constructor() {
+                this.usernameInput = document.getElementById('username');
+                this.submitBtn = document.getElementById('submit-btn');
+                this.notification = document.getElementById('notification');
+                this.mainForm = document.getElementById('main-form');
+                this.loadingEl = document.getElementById('loading');
+                this.returningUserSection = document.getElementById('returning-user-section');
+                this.returningUsername = document.getElementById('returning-username');
+                this.stationInfo = document.getElementById('station-info');
+                this.userStation = document.getElementById('user-station');
+
+                this.isReturningUser = false;
+                this.currentUsername = '';
+
+                this.setupEventListeners();
+                this.checkExistingSession();
+            }
+
+            setupEventListeners() {
+                this.submitBtn.addEventListener('click', () => this.handleSubmit());
+                this.usernameInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        this.handleSubmit();
+                    }
+                });
+
+                // Vérifier le nom d'utilisateur en temps réel
+                this.usernameInput.addEventListener('blur', () => {
+                    const username = this.usernameInput.value.trim();
+                    if (username.length > 0) {
+                        this.checkUsername(username);
+                    }
+                });
+            }
+
+            async checkExistingSession() {
+                try {
+                    const response = await fetch('/api/current-user');
+                    const data = await response.json();
+
+                    if (data.authenticated) {
+                        // L'utilisateur est déjà connecté, rediriger vers la page principale
+                        window.location.href = '/';
+                    }
+                } catch (error) {
+                    console.error('Erreur lors de la vérification de session:', error);
+                }
+            }
+
+            async checkUsername(username) {
+                try {
+                    const response = await fetch('/api/check-username', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ username })
+                    });
+
+                    const data = await response.json();
+
+                    if (data.exists && data.needsAuth) {
+                        // Nom d'utilisateur existe mais IP différente
+                        this.isReturningUser = true;
+                        this.currentUsername = username;
+                        this.returningUsername.textContent = username;
+                        this.returningUserSection.classList.remove('hidden');
+
+                        if (data.hasStation) {
+                            this.userStation.textContent = data.station;
+                            this.stationInfo.classList.remove('hidden');
+                        } else {
+                            this.stationInfo.classList.add('hidden');
+                        }
+
+                        this.submitBtn.textContent = 'Se connecter';
+                    } else if (data.exists && !data.needsAuth) {
+                        // Même IP, connexion automatique
+                        this.login(username);
+                    } else {
+                        // Nouveau nom d'utilisateur
+                        this.isReturningUser = false;
+                        this.returningUserSection.classList.add('hidden');
+                        this.submitBtn.textContent = 'Créer le compte';
+                    }
+                } catch (error) {
+                    console.error('Erreur lors de la vérification:', error);
+                }
+            }
+
+            async handleSubmit() {
+                const username = this.usernameInput.value.trim();
+
+                if (username.length === 0) {
+                    this.showNotification('Veuillez entrer un nom d\'utilisateur', 'error');
+                    return;
+                }
+
+                if (username.length < 2) {
+                    this.showNotification('Le nom d\'utilisateur doit contenir au moins 2 caractères', 'error');
+                    return;
+                }
+
+                this.submitBtn.disabled = true;
+                this.showLoading();
+
+                if (this.isReturningUser) {
+                    await this.login(username);
+                } else {
+                    await this.register(username);
+                }
+
+                this.submitBtn.disabled = false;
+                this.hideLoading();
+            }
+
+            async register(username) {
+                try {
+                    const response = await fetch('/api/register', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ username })
+                    });
+
+                    const data = await response.json();
+
+                    if (response.ok) {
+                        this.showNotification(`Bienvenue ${username} ! 🎉`, 'success');
+                        setTimeout(() => {
+                            window.location.href = '/';
+                        }, 1000);
+                    } else {
+                        this.showNotification(data.error, 'error');
+                    }
+                } catch (error) {
+                    this.showNotification('Erreur lors de la création du compte', 'error');
+                }
+            }
+
+            async login(username) {
+                try {
+                    const response = await fetch('/api/login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ username })
+                    });
+
+                    const data = await response.json();
+
+                    if (response.ok) {
+                        this.showNotification(`Bon retour ${username} ! 🎉`, 'success');
+                        setTimeout(() => {
+                            window.location.href = '/';
+                        }, 1000);
+                    } else {
+                        this.showNotification(data.error, 'error');
+                    }
+                } catch (error) {
+                    this.showNotification('Erreur lors de la connexion', 'error');
+                }
+            }
+
+            showNotification(message, type) {
+                this.notification.textContent = message;
+                this.notification.className = `notification ${type} show`;
+            }
+
+            showLoading() {
+                this.mainForm.classList.add('hidden');
+                this.loadingEl.classList.remove('hidden');
+            }
+
+            hideLoading() {
+                this.mainForm.classList.remove('hidden');
+                this.loadingEl.classList.add('hidden');
+            }
+        }
+
+        // Initialiser au chargement de la page
+        document.addEventListener('DOMContentLoaded', () => {
+            new LoginManager();
+        });
+    </script>
+</body>
+</html>

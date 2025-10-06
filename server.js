@@ -41,9 +41,10 @@ let rateLimiter = new RateLimiterMemory({
   duration: 86400, // Reset après 24h (86400 secondes = 1 jour)
 });
 
-// Stockage en mémoire des stations et des IPs
-let reservedStations = new Map(); // station -> IP
-let ipReservations = new Map(); // IP -> station
+// Stockage en mémoire des stations et des utilisateurs
+let reservedStations = new Map(); // station -> {username, ip}
+let userAccounts = new Map(); // username -> {ip, station}
+let ipReservations = new Map(); // IP -> {username, station}
 
 // Liste complète et dédoublonnée des stations du métro de Paris (au 2025)
 const metroStations = [
@@ -129,50 +130,207 @@ async function clearRateLimiterForIP(ip) {
 }
 
 // Routes API
+
+// Vérifier si un nom d'utilisateur existe
+app.post('/api/check-username', (req, res) => {
+  const { username } = req.body;
+  const clientIP = getRealIP(req);
+
+  if (!username || username.trim().length === 0) {
+    return res.status(400).json({ error: 'Nom d\'utilisateur invalide' });
+  }
+
+  const normalizedUsername = username.trim().toLowerCase();
+
+  // Vérifier si l'utilisateur existe
+  if (userAccounts.has(normalizedUsername)) {
+    const account = userAccounts.get(normalizedUsername);
+    // Si l'IP est différente, demander confirmation
+    if (account.ip !== clientIP) {
+      return res.json({
+        exists: true,
+        needsAuth: true,
+        hasStation: !!account.station,
+        station: account.station
+      });
+    }
+    // Même IP, connexion automatique
+    return res.json({
+      exists: true,
+      needsAuth: false,
+      hasStation: !!account.station,
+      station: account.station
+    });
+  }
+
+  // Nom d'utilisateur disponible
+  res.json({ exists: false, available: true });
+});
+
+// Connexion avec un nom d'utilisateur existant
+app.post('/api/login', (req, res) => {
+  const { username } = req.body;
+  const clientIP = getRealIP(req);
+
+  if (!username || username.trim().length === 0) {
+    return res.status(400).json({ error: 'Nom d\'utilisateur invalide' });
+  }
+
+  const normalizedUsername = username.trim().toLowerCase();
+
+  if (!userAccounts.has(normalizedUsername)) {
+    return res.status(404).json({ error: 'Utilisateur introuvable' });
+  }
+
+  const account = userAccounts.get(normalizedUsername);
+
+  // Mettre à jour l'IP
+  account.ip = clientIP;
+  userAccounts.set(normalizedUsername, account);
+
+  // Mettre à jour ipReservations
+  ipReservations.set(clientIP, { username: normalizedUsername, station: account.station });
+
+  // Si l'utilisateur avait une station, mettre à jour reservedStations
+  if (account.station) {
+    reservedStations.set(account.station, { username: normalizedUsername, ip: clientIP });
+  }
+
+  res.json({
+    success: true,
+    username: normalizedUsername,
+    station: account.station
+  });
+});
+
+// Créer un nouveau compte utilisateur
+app.post('/api/register', (req, res) => {
+  const { username } = req.body;
+  const clientIP = getRealIP(req);
+
+  if (!username || username.trim().length === 0) {
+    return res.status(400).json({ error: 'Nom d\'utilisateur invalide' });
+  }
+
+  const normalizedUsername = username.trim().toLowerCase();
+
+  // Vérifier si le nom d'utilisateur existe déjà
+  if (userAccounts.has(normalizedUsername)) {
+    return res.status(400).json({ error: 'Ce nom d\'utilisateur est déjà pris' });
+  }
+
+  // Créer le compte
+  userAccounts.set(normalizedUsername, { ip: clientIP, station: null });
+  ipReservations.set(clientIP, { username: normalizedUsername, station: null });
+
+  res.json({ success: true, username: normalizedUsername });
+});
+
+// Obtenir l'utilisateur actuel
+app.get('/api/current-user', (req, res) => {
+  const clientIP = getRealIP(req);
+
+  const userInfo = ipReservations.get(clientIP);
+  if (userInfo) {
+    res.json({
+      authenticated: true,
+      username: userInfo.username,
+      station: userInfo.station
+    });
+  } else {
+    res.json({ authenticated: false });
+  }
+});
+
+// Déconnexion
+app.post('/api/logout', (req, res) => {
+  const clientIP = getRealIP(req);
+
+  // Supprimer uniquement de ipReservations (garder le compte utilisateur)
+  ipReservations.delete(clientIP);
+
+  res.json({ success: true });
+});
+
 app.get('/api/stations', (req, res) => {
   const clientIP = getRealIP(req);
-  const userStation = ipReservations.get(clientIP); // Station sélectionnée par cet utilisateur
+  const userInfo = ipReservations.get(clientIP);
+  const userStation = userInfo?.station;
 
-  const stationsStatus = metroStations.map(station => ({
-    name: station,
-    reserved: reservedStations.has(station),
-    isUserSelection: station === userStation // Indique si c'est la station de l'utilisateur
-  }));
+  const stationsStatus = metroStations.map(station => {
+    const reservation = reservedStations.get(station);
+    return {
+      name: station,
+      reserved: reservedStations.has(station),
+      reservedBy: reservation?.username || null,
+      isUserSelection: station === userStation
+    };
+  });
   res.json(stationsStatus);
+});
+
+// Obtenir la liste des utilisateurs qui ont voté
+app.get('/api/voters', (req, res) => {
+  const voters = [];
+
+  for (const [username, account] of userAccounts.entries()) {
+    if (account.station) {
+      voters.push({
+        username: username,
+        station: account.station
+      });
+    }
+  }
+
+  res.json(voters);
 });
 
 app.post('/api/reserve', async (req, res) => {
   const { station } = req.body;
   const clientIP = getRealIP(req);
-  
+
+  // Vérifier que l'utilisateur est authentifié
+  const userInfo = ipReservations.get(clientIP);
+  if (!userInfo) {
+    return res.status(401).json({ error: 'Non authentifié' });
+  }
+
+  const username = userInfo.username;
+
   try {
     // Vérifier le rate limiting
     await rateLimiter.consume(clientIP);
-    
+
     // Vérifier si la station existe
     if (!metroStations.includes(station)) {
       return res.status(400).json({ error: 'Station invalide' });
     }
-    
-    // Vérifier si l'IP a déjà réservé une station
-    if (ipReservations.has(clientIP)) {
+
+    // Vérifier si l'utilisateur a déjà réservé une station
+    if (userInfo.station) {
       return res.status(400).json({ error: 'Vous avez déjà sélectionné une station' });
     }
-    
+
     // Vérifier si la station est déjà réservée
     if (reservedStations.has(station)) {
       return res.status(400).json({ error: 'Station déjà prise' });
     }
-    
+
     // Réserver la station
-    reservedStations.set(station, clientIP);
-    ipReservations.set(clientIP, station);
-    
+    reservedStations.set(station, { username, ip: clientIP });
+    userInfo.station = station;
+    ipReservations.set(clientIP, userInfo);
+
+    // Mettre à jour le compte utilisateur
+    const account = userAccounts.get(username);
+    account.station = station;
+    userAccounts.set(username, account);
+
     // Notifier tous les clients connectés
-    io.emit('stationReserved', { station });
-    
+    io.emit('stationReserved', { station, username });
+
     res.json({ success: true, station });
-    
+
   } catch (rejRes) {
     res.status(429).json({ error: 'Vous avez déjà fait votre sélection' });
   }
@@ -182,16 +340,28 @@ app.post('/api/reserve', async (req, res) => {
 app.post('/api/unreserve', async (req, res) => {
   const clientIP = getRealIP(req);
 
-  // Vérifier si l'IP a une réservation
-  if (!ipReservations.has(clientIP)) {
+  // Vérifier si l'utilisateur est authentifié
+  const userInfo = ipReservations.get(clientIP);
+  if (!userInfo) {
+    return res.status(400).json({ error: 'Non authentifié' });
+  }
+
+  if (!userInfo.station) {
     return res.status(400).json({ error: 'Aucune réservation trouvée' });
   }
 
-  const station = ipReservations.get(clientIP);
+  const station = userInfo.station;
+  const username = userInfo.username;
 
   // Libérer la station
   reservedStations.delete(station);
-  ipReservations.delete(clientIP);
+  userInfo.station = null;
+  ipReservations.set(clientIP, userInfo);
+
+  // Mettre à jour le compte utilisateur
+  const account = userAccounts.get(username);
+  account.station = null;
+  userAccounts.set(username, account);
 
   // Effacer la clé de rate limiter pour permettre une nouvelle sélection
   try {
@@ -203,7 +373,7 @@ app.post('/api/unreserve', async (req, res) => {
   // Notifier tous les clients
   io.emit('stationReleased', { station });
 
-  console.log(`Station "${station}" désélectionnée par ${clientIP}`);
+  console.log(`Station "${station}" désélectionnée par ${username}`);
   res.json({ success: true, station });
 });
 
@@ -217,9 +387,25 @@ app.post('/api/release', async (req, res) => {
   }
 
   if (reservedStations.has(station)) {
-    const ip = reservedStations.get(station);
+    const reservation = reservedStations.get(station);
+    const username = reservation.username;
+    const ip = reservation.ip;
+
     reservedStations.delete(station);
-    ipReservations.delete(ip);
+
+    // Mettre à jour le compte utilisateur
+    if (userAccounts.has(username)) {
+      const account = userAccounts.get(username);
+      account.station = null;
+      userAccounts.set(username, account);
+    }
+
+    // Mettre à jour ipReservations
+    if (ipReservations.has(ip)) {
+      const userInfo = ipReservations.get(ip);
+      userInfo.station = null;
+      ipReservations.set(ip, userInfo);
+    }
 
     // Effacer la clé de rate limiter pour l'IP libérée
     try {
@@ -254,8 +440,19 @@ app.post('/api/reset-all', async (req, res) => {
     console.error('Erreur en recréant le rateLimiter:', err);
   }
 
+  // Réinitialiser toutes les stations des comptes utilisateurs
+  for (const [username, account] of userAccounts.entries()) {
+    account.station = null;
+    userAccounts.set(username, account);
+  }
+
+  // Réinitialiser les stations dans ipReservations
+  for (const [ip, userInfo] of ipReservations.entries()) {
+    userInfo.station = null;
+    ipReservations.set(ip, userInfo);
+  }
+
   reservedStations.clear();
-  ipReservations.clear();
 
   io.emit('allStationsReleased');
   res.json({ success: true });
@@ -270,8 +467,25 @@ io.on('connection', (socket) => {
   });
 });
 
-// Servir le fichier HTML principal
-app.get('/', (req, res) => {
+// Middleware pour vérifier l'authentification
+function requireAuth(req, res, next) {
+  const clientIP = getRealIP(req);
+  const userInfo = ipReservations.get(clientIP);
+
+  if (!userInfo) {
+    return res.redirect('/login.html');
+  }
+
+  next();
+}
+
+// Servir la page de connexion
+app.get('/login.html', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'login.html'));
+});
+
+// Servir le fichier HTML principal (avec protection auth)
+app.get('/', requireAuth, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
