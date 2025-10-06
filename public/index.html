@@ -778,26 +778,26 @@
             .scroll-to-top {
                 width: 50px;
                 height: 50px;
-                bottom: 80px;
-                right: 15px;
+                bottom: 20px;
+                left: 15px;
+                right: auto;
                 font-size: 1.3em;
             }
 
-            /* Panel votants en mobile */
+            /* Panel votants en mobile - en haut à droite */
             .voters-panel {
-                width: 100%;
-                max-width: 300px;
+                width: 280px;
                 right: 10px;
-                top: auto;
-                bottom: 20px;
+                top: 10px;
+                bottom: auto;
                 transform: none;
-                max-height: 40vh;
+                max-height: 50vh;
             }
 
             .voters-panel.collapsed {
                 width: 50px;
                 height: 50px;
-                bottom: 20px;
+                top: 10px;
                 right: 10px;
             }
 
@@ -1177,9 +1177,6 @@
                         <div class="voter-item ${isCurrentUser ? 'current-user' : ''}">
                             <div class="voter-username">
                                 ${isCurrentUser ? '⭐' : '👤'} ${voter.username} ${isCurrentUser ? '(Vous)' : ''}
-                            </div>
-                            <div class="voter-station">
-                                🚇 ${voter.station}
                             </div>
                         </div>
                     `;
