@@ -102,6 +102,26 @@
             box-shadow: 0 6px 20px rgba(244, 67, 54, 0.5);
         }
 
+        .show-voters-btn {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border: none;
+            color: white;
+            padding: 8px 20px;
+            border-radius: 20px;
+            margin-left: 15px;
+            cursor: pointer;
+            font-size: 0.9em;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 10px rgba(255, 107, 53, 0.3);
+            display: none;
+        }
+
+        .show-voters-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 107, 53, 0.5);
+        }
+
         .stats {
             display: flex;
             justify-content: center;
@@ -685,6 +705,21 @@
                 display: inline-block;
             }
 
+            .show-voters-btn {
+                display: inline-block;
+                margin-left: 0;
+                margin-top: 10px;
+            }
+
+            /* Masquer le panel votants par défaut sur mobile */
+            .voters-panel {
+                display: none;
+            }
+
+            .voters-panel.show-mobile {
+                display: block;
+            }
+
             .stats {
                 gap: 10px;
             }
@@ -873,6 +908,7 @@
 
                 <div class="user-info" id="userInfo">
                     Connecté en tant que <strong id="currentUsername"></strong>
+                    <button class="show-voters-btn" id="showVotersBtn">👥 Voir les votes (<span id="votersCountHeader">0</span>)</button>
                     <button class="logout-btn" id="logoutBtn">Déconnexion</button>
                 </div>
 
@@ -987,6 +1023,8 @@
                 this.toggleVotersBtn = document.getElementById('toggleVoters');
                 this.votersHeaderEl = document.getElementById('votersHeader');
                 this.clearFilterBtn = document.getElementById('clearFilterBtn');
+                this.showVotersBtn = document.getElementById('showVotersBtn');
+                this.votersCountHeaderEl = document.getElementById('votersCountHeader');
             }
 
             async loadCurrentUser() {
@@ -1096,6 +1134,11 @@
                 this.clearFilterBtn.addEventListener('click', () => {
                     this.clearAlphabetFilter();
                 });
+
+                // Bouton afficher les votants (mobile)
+                this.showVotersBtn.addEventListener('click', () => {
+                    this.votersPanelEl.classList.toggle('show-mobile');
+                });
             }
 
             async logout() {
@@ -1165,6 +1208,7 @@
 
             renderVoters(voters) {
                 this.votersCountEl.textContent = voters.length;
+                this.votersCountHeaderEl.textContent = voters.length;
 
                 if (voters.length === 0) {
                     this.votersListEl.innerHTML = '<div class="no-voters">Aucun vote pour le moment</div>';
