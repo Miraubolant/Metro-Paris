@@ -562,6 +562,26 @@
             transform: rotate(180deg);
         }
 
+        .close-popup-btn {
+            background: rgba(244, 67, 54, 0.8);
+            border: none;
+            color: white;
+            font-size: 1.2em;
+            cursor: pointer;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .close-popup-btn:hover {
+            background: rgba(244, 67, 54, 1);
+            transform: scale(1.1);
+        }
+
         .voters-count {
             background: rgba(255, 255, 255, 0.3);
             padding: 3px 10px;
@@ -718,6 +738,54 @@
 
             .voters-panel.show-mobile {
                 display: block;
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                width: 90%;
+                max-width: 400px;
+                max-height: 70vh;
+                z-index: 1000;
+                border-radius: 15px;
+                box-shadow: 0 10px 50px rgba(0, 0, 0, 0.8);
+                animation: popupSlideIn 0.3s ease-out;
+            }
+
+            .voters-panel.show-mobile .toggle-voters {
+                display: none;
+            }
+
+            .voters-panel.show-mobile .close-popup-btn {
+                display: flex;
+            }
+
+            @keyframes popupSlideIn {
+                from {
+                    opacity: 0;
+                    transform: translate(-50%, -60%);
+                }
+                to {
+                    opacity: 1;
+                    transform: translate(-50%, -50%);
+                }
+            }
+
+            /* Overlay sombre derrière le popup */
+            body.voters-open::before {
+                content: '';
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0, 0, 0, 0.7);
+                z-index: 999;
+                animation: fadeIn 0.3s ease-out;
+            }
+
+            @keyframes fadeIn {
+                from { opacity: 0; }
+                to { opacity: 1; }
             }
 
             .stats {
@@ -974,6 +1042,7 @@
                 👥 Votants <span class="voters-count" id="votersCount">0</span>
             </div>
             <button class="toggle-voters" id="toggleVoters">👁️</button>
+            <button class="close-popup-btn" id="closePopupBtn">✕</button>
         </div>
         <div class="voters-list" id="votersList">
             <div class="no-voters">Aucun vote pour le moment</div>
@@ -1025,6 +1094,7 @@
                 this.clearFilterBtn = document.getElementById('clearFilterBtn');
                 this.showVotersBtn = document.getElementById('showVotersBtn');
                 this.votersCountHeaderEl = document.getElementById('votersCountHeader');
+                this.closePopupBtn = document.getElementById('closePopupBtn');
             }
 
             async loadCurrentUser() {
@@ -1137,7 +1207,22 @@
 
                 // Bouton afficher les votants (mobile)
                 this.showVotersBtn.addEventListener('click', () => {
-                    this.votersPanelEl.classList.toggle('show-mobile');
+                    this.toggleMobileVotersPanel();
+                });
+
+                // Bouton fermer le popup
+                this.closePopupBtn.addEventListener('click', () => {
+                    this.toggleMobileVotersPanel();
+                });
+
+                // Fermer le popup en cliquant sur l'overlay (mobile)
+                document.addEventListener('click', (e) => {
+                    if (window.innerWidth <= 768 &&
+                        this.votersPanelEl.classList.contains('show-mobile') &&
+                        !this.votersPanelEl.contains(e.target) &&
+                        !this.showVotersBtn.contains(e.target)) {
+                        this.toggleMobileVotersPanel();
+                    }
                 });
             }
 
@@ -1162,6 +1247,11 @@
 
             toggleVotersPanel() {
                 this.votersPanelEl.classList.toggle('collapsed');
+            }
+
+            toggleMobileVotersPanel() {
+                this.votersPanelEl.classList.toggle('show-mobile');
+                document.body.classList.toggle('voters-open');
             }
 
             async loadStations() {
